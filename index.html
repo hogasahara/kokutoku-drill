@@ -1328,6 +1328,47 @@ function stopRec(){
   if(sp.int)clearInterval(sp.int);
   sp.running=false;
   if(sp.rec){try{sp.rec.onend=null;sp.rec.stop()}catch(e){}}
+  killAudioRec();
+}
+const spRec={mr:null,stream:null,chunks:[],url:null};
+function startAudioRec(){
+  try{
+    if(!navigator.mediaDevices||!window.MediaRecorder)return;
+    navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{
+      spRec.stream=st;spRec.chunks=[];
+      const mr=new MediaRecorder(st);spRec.mr=mr;
+      mr.ondataavailable=e=>{if(e.data&&e.data.size)spRec.chunks.push(e.data)};
+      mr.start();
+    }).catch(()=>{});
+  }catch(e){}
+}
+function stopAudioRec(cb){
+  try{
+    if(spRec.mr&&spRec.mr.state!=="inactive"){
+      spRec.mr.onstop=()=>{
+        try{
+          const b=new Blob(spRec.chunks,{type:spRec.mr.mimeType||"audio/mp4"});
+          if(spRec.url)URL.revokeObjectURL(spRec.url);
+          spRec.url=spRec.chunks.length?URL.createObjectURL(b):null;
+        }catch(e){spRec.url=null}
+        if(spRec.stream)spRec.stream.getTracks().forEach(t=>t.stop());
+        spRec.mr=null;spRec.stream=null;
+        if(cb)cb();
+      };
+      spRec.mr.stop();
+    }else{
+      if(spRec.stream)spRec.stream.getTracks().forEach(t=>t.stop());
+      spRec.mr=null;spRec.stream=null;
+      if(cb)cb();
+    }
+  }catch(e){if(cb)cb()}
+}
+function killAudioRec(){
+  try{
+    if(spRec.mr&&spRec.mr.state!=="inactive"){spRec.mr.onstop=null;spRec.mr.stop()}
+    if(spRec.stream)spRec.stream.getTracks().forEach(t=>t.stop());
+    spRec.mr=null;spRec.stream=null;
+  }catch(e){}
 }
 function lev(a,b){
   const m=a.length,n=b.length,d=[];
@@ -1362,7 +1403,7 @@ function phonSpeak(){
     <div style="margin-top:8px"><label class="f">判定方法</label><select id="sp-m"><option value="rec" selected>音声認識で自動判定（マイク使用）</option><option value="self">自己チェック採点（マイクなし）</option></select></div>
     <button class="primary" style="margin-top:10px" onclick="spStart()">開始する</button>
   </div>
-  <p class="note">※自動判定は初回にマイクの許可が必要です（Safariの場合、iPhoneの音声入力がオフだと動かないことがあります）。マイクが使えない環境では「自己チェック採点」を選ぶか、エラー時に自動で切り替わります。<br>※お手本の音が出ないときは、本体横の消音スイッチ（マナーモード）解除と音量アップを確認してください。</p>`;
+  <p class="note">※自動判定は初回にマイクの許可が必要です（iPhoneの音声入力がオフだと動かないことがあります）。使えない環境では「自己チェック採点」に自動で切り替わります。自己チェック採点では読み上げを自動録音し（マイク許可時）、聞き返しながら○×をつけられます。録音は端末内のみで保存されません。<br>※お手本の音が出ないときは、本体横の消音スイッチ（マナーモード）解除と音量アップを確認してください。</p>`;
 }
 function spStart(){
   sp.n=parseInt($("sp-n").value);sp.pace=parseFloat($("sp-r").value);
@@ -1462,6 +1503,7 @@ function spFallback(msg){
     <button class="primary" onclick="spFbDone()">読み終わった（答え合わせ）</button>
   </div>`;
   sp.running=true;sp.end=Date.now()+sp.limit*1000;
+  startAudioRec();
   sp.int=setInterval(()=>{
     const rem=(sp.end-Date.now())/1000;
     if(rem<=0){spFbDone();return}
@@ -1474,13 +1516,14 @@ function spFbDone(){
   if(!sp.running)return;
   sp.running=false;clearInterval(sp.int);
   sp.marks=sp.letters.split("").map(()=>true);
-  spFbMark();
+  stopAudioRec(()=>spFbMark());
 }
 function spFbMark(){
   app.innerHTML=`<button class="back" onclick="phonSpeak()">← 設定に戻る</button>
   <div class="card">
     <h2 style="margin-top:0">自己チェック採点</h2>
     <p style="font-size:13px;color:var(--sub)">正しく読めなかった字をタップして×にしてください（もう一度タップで○に戻ります）。</p>
+    ${spRec.url?`<p style="font-size:12px;color:var(--cyan);margin:4px 0 2px">自分の読みを聞き返して採点：</p><audio controls src="${spRec.url}" style="width:100%;margin-bottom:8px"></audio>`:""}
     <div class="ph-grid">${sp.letters.split("").map((c,i)=>`<button class="ph-cell" style="text-align:left;border:1px solid ${sp.marks[i]?"var(--green)":"var(--red)"}" onclick="sp.marks[${i}]=!sp.marks[${i}];spFbMark()"><b>${c}</b>${PHON.find(x=>x[0]===c)[1]} <span style="float:right;font-weight:700;color:${sp.marks[i]?"var(--green)":"var(--red)"}">${sp.marks[i]?"○":"×"}</span></button>`).join("")}</div>
     <button class="secondary" style="margin-top:10px" onclick="speakSeq('${sp.letters}'.split(''),1)">全体のお手本を聴く</button>
     <button class="primary" style="margin-top:8px" onclick="spFbSave()">この採点で記録する</button>
