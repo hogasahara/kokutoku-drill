@@ -1281,18 +1281,39 @@ function speakSeq(chars,rate){
   else go();
 }
 try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{try{speechSynthesis.getVoices()}catch(e){}}}catch(e){}
+let plTimer=null;
+function sayOne(c){
+  const u=new SpeechSynthesisUtterance(SPEAK[c]||c);
+  u.lang="en-US";u.rate=1;u.volume=1;
+  try{const v=speechSynthesis.getVoices().find(v=>/^en[-_]/i.test(v.lang));if(v)u.voice=v}catch(e){}
+  speechSynthesis.speak(u);
+  try{speechSynthesis.resume()}catch(e){}
+}
+function pacedSpeak(chars,interval){
+  stopPaced();
+  let i=0;
+  sayOne(chars[i++]);
+  if(i<chars.length)plTimer=setInterval(()=>{
+    if(i>=chars.length){clearInterval(plTimer);plTimer=null;return}
+    sayOne(chars[i++]);
+  },interval*1000);
+}
+function stopPaced(){
+  if(plTimer){clearInterval(plTimer);plTimer=null}
+  speechSynthesis.cancel();
+}
 function phonListen(){
   app.innerHTML=`<button class="back" onclick="phonMenu()">← 戻る</button>
   <h2>受話練習</h2>
   <div class="card">
     <div class="row">
       <div><label class="f">文字数</label><select id="pl-n"><option value="10">10字</option><option value="25" selected>25字（1分相当）</option><option value="50">50字（試験と同量）</option></select></div>
-      <div><label class="f">速さ</label><select id="pl-r"><option value="0.8">ゆっくり</option><option value="1" selected>標準</option><option value="1.2">速い</option></select></div>
+      <div><label class="f">ペース（1字あたり）</label><select id="pl-r"><option value="3">ゆっくり（3秒）</option><option value="2.4" selected>本番（2.4秒）</option><option value="2">速い（2秒）</option></select></div>
     </div>
     <button class="primary" onclick="phonPlay()">出題して再生 ▶</button>
     <div class="row">
       <button class="secondary" onclick="phonReplay()">もう一度再生</button>
-      <button class="secondary" onclick="speechSynthesis.cancel()">停止</button>
+      <button class="secondary" onclick="stopPaced()">停止</button>
     </div>
     <label class="f" style="margin-top:8px">聴き取った文字を入力</label>
     <input type="text" id="pl-in" autocomplete="off" autocapitalize="characters">
@@ -1304,9 +1325,9 @@ function phonListen(){
 function phonPlay(){
   phonAns=randLetters(parseInt($("pl-n").value));
   $("pl-in").value="";$("pl-res").innerHTML="";
-  speakSeq(phonAns.split(""),parseFloat($("pl-r").value));
+  pacedSpeak(phonAns.split(""),parseFloat($("pl-r").value));
 }
-function phonReplay(){if(phonAns)speakSeq(phonAns.split(""),parseFloat($("pl-r").value))}
+function phonReplay(){if(phonAns)pacedSpeak(phonAns.split(""),parseFloat($("pl-r").value))}
 function phonCheck(){
   if(!phonAns){$("pl-res").innerHTML=`<p class="note">先に「出題して再生」を押してください。</p>`;return}
   const inp=$("pl-in").value.toUpperCase().replace(/[^A-Z]/g,"");
@@ -1325,6 +1346,7 @@ function phonCheck(){
 const VOICE={A:["alpha","alfa"],B:["bravo"],C:["charlie","charley"],D:["delta"],E:["echo"],F:["foxtrot","fox trot"],G:["golf","gulf"],H:["hotel"],I:["india"],J:["juliet","juliett","juliette","julia"],K:["kilo"],L:["lima"],M:["mike","mic"],N:["november"],O:["oscar"],P:["papa","poppa"],Q:["quebec"],R:["romeo"],S:["sierra"],T:["tango"],U:["uniform"],V:["victor"],W:["whiskey","whisky"],X:["x ray","xray","exray"],Y:["yankee","yanky"],Z:["zulu"]};
 let sp={running:false};
 function stopRec(){
+  if(typeof plTimer!=="undefined"&&plTimer){clearInterval(plTimer);plTimer=null}
   if(sp.int)clearInterval(sp.int);
   sp.running=false;
   if(sp.rec){try{sp.rec.onend=null;sp.rec.stop()}catch(e){}}
