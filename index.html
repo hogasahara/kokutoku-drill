@@ -1257,7 +1257,7 @@ function phonMenu(){
   <button class="menu-btn" onclick="phonTable()"><span>通話表を見る<small>A〜Z 一覧</small></span><span class="arrow">›</span></button>
   <button class="menu-btn" onclick="phonListen()"><span>受話練習<small>音声を聴いて文字を書き取る</small></span><span class="arrow">›</span></button>
   <button class="menu-btn" onclick="phonSpeak()"><span>送話練習<small>制限時間内に読み上げ→音声認識で判定</small></span><span class="arrow">›</span></button>
-  <p class="note">試験の電気通信術は欧文（A〜Z）の受話・送話、速度1分間25字・2分間です。</p>`;
+  <p class="note">試験の電気通信術は欧文（A〜Z）の受話・送話。速度は1分間50字・約2分間（計約100字＝5字区切り×20語）です。</p>`;
 }
 function phonTable(){
   app.innerHTML=`<button class="back" onclick="phonMenu()">← 戻る</button>
@@ -1307,8 +1307,8 @@ function phonListen(){
   <h2>受話練習</h2>
   <div class="card">
     <div class="row">
-      <div><label class="f">文字数</label><select id="pl-n"><option value="10">10字</option><option value="25" selected>25字（1分相当）</option><option value="50">50字（試験と同量）</option></select></div>
-      <div><label class="f">ペース（1字あたり）</label><select id="pl-r"><option value="3">ゆっくり（3秒）</option><option value="2.4" selected>本番（2.4秒）</option><option value="2">速い（2秒）</option></select></div>
+      <div><label class="f">文字数</label><select id="pl-n"><option value="10">10字</option><option value="25" selected>25字（30秒相当）</option><option value="50">50字（1分相当）</option><option value="100">100字（試験と同量・2分）</option></select></div>
+      <div><label class="f">ペース（1字あたり）</label><select id="pl-r"><option value="2">ゆっくり（2秒）</option><option value="1.2" selected>本番（1.2秒）</option><option value="1">速い（1秒）</option></select></div>
     </div>
     <button class="primary" onclick="phonPlay()">出題して再生 ▶</button>
     <div class="row">
@@ -1419,8 +1419,8 @@ function phonSpeak(){
   <h2>送話練習</h2>
   <div class="card">
     <div class="row">
-      <div><label class="f">文字数</label><select id="sp-n"><option value="5">5字</option><option value="10" selected>10字</option><option value="25">25字（1分相当）</option><option value="50">50字（試験と同量）</option></select></div>
-      <div><label class="f">ペース（1字あたり）</label><select id="sp-r"><option value="3">ゆっくり（3秒）</option><option value="2.4" selected>本番（2.4秒）</option><option value="2">速い（2秒）</option></select></div>
+      <div><label class="f">文字数</label><select id="sp-n"><option value="5">5字</option><option value="10" selected>10字</option><option value="25">25字（30秒相当）</option><option value="50">50字（1分相当）</option><option value="100">100字（試験と同量・2分）</option></select></div>
+      <div><label class="f">ペース（1字あたり）</label><select id="sp-r"><option value="2">ゆっくり（2秒）</option><option value="1.2" selected>本番（1.2秒）</option><option value="1">速い（1秒）</option></select></div>
     </div>
     <div style="margin-top:8px"><label class="f">判定方法</label><select id="sp-m"><option value="rec" selected>音声認識で自動判定（マイク使用）</option><option value="self">自己チェック採点（マイクなし）</option></select></div>
     <button class="primary" style="margin-top:10px" onclick="spStart()">開始する</button>
@@ -1513,7 +1513,7 @@ function spResult(){
       <button class="primary" onclick="spNew()">新しい文字で挑戦</button>
     </div>
   </div>
-  <p class="note">×は音声認識で該当の語を拾えなかった字です。発音のほか、マイクや周囲の騒音、読む速さの影響も受けます。本番は誤字−3点・脱字−3点・冗字も減点。1字約2秒で淀みなく読み切る練習をしましょう。</p>`;
+  <p class="note">×は音声認識で該当の語を拾えなかった字です。発音のほか、マイクや周囲の騒音、読む速さの影響も受けます。本番は誤字−3点・脱字−3点・冗字も減点。1字約1.2秒で淀みなく読み切る練習をしましょう。</p>`;
 }
 function spFallback(msg){
   app.innerHTML=`<button class="back" onclick="phonSpeak()">← 設定に戻る（中断）</button>
@@ -1550,7 +1550,7 @@ function spFbMark(){
     <button class="secondary" style="margin-top:10px" onclick="speakSeq('${sp.letters}'.split(''),1)">全体のお手本を聴く</button>
     <button class="primary" style="margin-top:8px" onclick="spFbSave()">この採点で記録する</button>
   </div>
-  <p class="note">目安：言い淀み・読み直し・2秒以上の詰まりがあった字は×にすると本番（誤字・脱字で減点）に近い採点になります。</p>`;
+  <p class="note">目安：言い淀み・読み直し・1秒以上の詰まりがあった字は×にすると本番（誤字・脱字で減点）に近い採点になります。</p>`;
 }
 function spFbSave(){
   const ok=sp.marks.filter(Boolean).length,miss=sp.letters.split("").filter((c,i)=>!sp.marks[i]);
@@ -1571,7 +1571,7 @@ function spFbSave(){
       <button class="primary" onclick="spNew()">新しい文字で挑戦</button>
     </div>
   </div>
-  <p class="note">本番は誤字−3点・脱字−3点・冗字も減点。1字約2秒で淀みなく読み切れるまで繰り返しましょう。</p>`;
+  <p class="note">本番は誤字−3点・脱字−3点・冗字も減点。1字約1.2秒で淀みなく読み切れるまで繰り返しましょう。</p>`;
 }
 home();
 </script>
