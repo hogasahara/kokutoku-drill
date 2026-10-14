@@ -1289,17 +1289,23 @@ function sayOne(c){
   speechSynthesis.speak(u);
   try{speechSynthesis.resume()}catch(e){}
 }
-function pacedSpeak(chars,interval){
+function pacedSpeak(chars,avg){
+  /* 本番方式: 5字=1語のまとまりで送出。語内1秒/字＋語間の間で1語6秒（平均1.2秒/字=50字/分）。
+     avg(選択ペース)/1.2 で全体を伸縮する。 */
   stopPaced();
+  const scale=avg/1.2;
+  const times=chars.map((c,i)=>{const g=Math.floor(i/5),w=i%5;return Math.round(scale*(g*6000+w*1000))});
+  const t0=Date.now();
   let i=0;
-  sayOne(chars[i++]);
-  if(i<chars.length)plTimer=setInterval(()=>{
-    if(i>=chars.length){clearInterval(plTimer);plTimer=null;return}
-    sayOne(chars[i++]);
-  },interval*1000);
+  const tick=()=>{
+    while(i<chars.length&&Date.now()-t0>=times[i]){sayOne(chars[i]);i++}
+    if(i<chars.length)plTimer=setTimeout(tick,50);
+    else plTimer=null;
+  };
+  tick();
 }
 function stopPaced(){
-  if(plTimer){clearInterval(plTimer);plTimer=null}
+  if(plTimer){clearTimeout(plTimer);plTimer=null}
   speechSynthesis.cancel();
 }
 function phonListen(){
@@ -1320,7 +1326,7 @@ function phonListen(){
     <button class="primary" style="margin-top:8px" onclick="phonCheck()">答え合わせ</button>
     <div id="pl-res"></div>
   </div>
-  <p class="note">音声はブラウザの読み上げ機能（英語音声）を使用します。音が出ない場合は、①iPhone本体横の消音スイッチ（マナーモード）を解除 ②音量を上げる ③再生ボタンを押し直す、を試してください。</p>`;
+  <p class="note">本番と同じく、5字を1語のまとまりとして語ごとに区切って読み上げます（本番ペースで1語6秒＝1分50字）。音声はブラウザの読み上げ機能（英語音声）を使用します。音が出ない場合は、①iPhone本体横の消音スイッチ（マナーモード）を解除 ②音量を上げる ③再生ボタンを押し直す、を試してください。</p>`;
 }
 function phonPlay(){
   phonAns=randLetters(parseInt($("pl-n").value));
